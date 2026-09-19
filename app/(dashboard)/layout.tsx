@@ -1,10 +1,16 @@
 import { AppNav } from "@/components/app-nav";
+import { auth } from "@/lib/auth";
 
-export default function DashboardLayout({
+export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const session = await auth();
+  if (!session?.user) {
+    return children;
+  }
+
   return (
     <div className="flex min-h-svh flex-col md:flex-row">
       <AppNav />

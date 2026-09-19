@@ -1,23 +1,13 @@
 import NextAuth from "next-auth";
 import { NextResponse } from "next/server";
 import { authConfig } from "@/auth.config";
+import { isPublicAuthPath } from "@/lib/auth-ready";
 
 const { auth } = NextAuth(authConfig);
 
 export default auth((request) => {
-  const configured = Boolean(
-    process.env.AUTH_SECRET &&
-      ((process.env.ADMIN_EMAIL && process.env.ADMIN_PASSWORD) ||
-        process.env.AUTH_RESEND_KEY),
-  );
-  if (!configured) return NextResponse.next();
-
   const path = request.nextUrl.pathname;
-  if (
-    path.startsWith("/api/cron") ||
-    path.startsWith("/api/auth") ||
-    path.startsWith("/login")
-  ) {
+  if (isPublicAuthPath(path)) {
     return NextResponse.next();
   }
 
@@ -31,5 +21,7 @@ export default auth((request) => {
 });
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|be-nosy/|.*\\.(?:png|jpg|jpeg|gif|svg|webp|ico)$).*)",
+  ],
 };

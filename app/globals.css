@@ -92,3 +92,11 @@ body {
   color: var(--foreground);
   font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
 }
+
+.font-be-display {
+  font-family: var(--font-anonymous-pro), ui-monospace, monospace;
+}
+
+.font-be-mono {
+  font-family: var(--font-roboto-mono), ui-monospace, monospace;
+}

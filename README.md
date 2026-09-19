@@ -10,7 +10,7 @@ v1 seed data is **Voice AI**. The schema and settings are industry-agnostic — 
 - Tailwind CSS + shadcn/ui
 - Postgres via Drizzle (Neon, Supabase, or local Docker)
 - Vercel Cron → `POST /api/cron/ingest`
-- Auth.js (optional single-user credentials or Resend magic link)
+- Auth.js — email + password
 
 ## Setup
 
@@ -35,11 +35,10 @@ Using Neon or Supabase instead of Docker: set `DATABASE_URL` to the provider con
 | `CRON_SECRET` | yes for ingest | Bearer token for `/api/cron/ingest` |
 | `X_BEARER_TOKEN` | no | X API v2 bearer. Missing → mock mode |
 | `NEXT_PUBLIC_APP_URL` | recommended | Public origin, e.g. `http://localhost:3000` |
-| `AUTH_SECRET` | no | Enables Auth.js when set with admin creds |
-| `ADMIN_EMAIL` / `ADMIN_PASSWORD` | no | Single-user password login |
-| `AUTH_RESEND_KEY` / `AUTH_EMAIL_FROM` | no | Magic-link login (admin email only) |
+| `AUTH_SECRET` | yes for login | Auth.js secret. Generate with `openssl rand -base64 32` |
+| `AUTH_URL` | recommended | App origin, e.g. `http://localhost:3000` |
 
-Leave auth vars unset for an open local dashboard (fine for v1 single-user).
+Logged-out people see email sign in. Ingest still uses Grok X Search. Alert links can open the exact post on X.
 
 ## Seed
 
@@ -66,7 +65,7 @@ With a bearer token it fetches each active competitor timeline, searches recent 
 | --- | --- |
 | `pnpm dev` | Next.js dev server |
 | `pnpm test` | Classifier unit tests (5 fixtures) |
-| `pnpm db:migrate` | Apply `drizzle/0000_init.sql` |
+| `pnpm db:migrate` | Apply SQL files in `drizzle/` |
 | `pnpm db:seed` | Voice AI roster + mock alerts |
 | `pnpm db:generate` | Drizzle kit generate (schema changes) |
 | `pnpm db:push` | Drizzle kit push |

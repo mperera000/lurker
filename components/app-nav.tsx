@@ -8,6 +8,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSession } from "next-auth/react";
+import { SignOutButton } from "@/components/sign-out-button";
 import { cn } from "@/lib/utils";
 
 const links = [
@@ -19,16 +21,18 @@ const links = [
 
 export function AppNav() {
   const pathname = usePathname();
+  const { data: session } = useSession();
+  const email = session?.user?.email;
 
   return (
     <aside className="flex shrink-0 flex-col border-b border-border bg-sidebar md:h-svh md:w-56 md:border-b-0 md:border-r">
       <div className="flex items-center gap-2 px-4 py-3 md:px-4 md:py-4">
         <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-[11px] font-bold text-primary-foreground">
-          LW
+          L
         </div>
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold leading-tight">
-            Launch Watcher
+            Lurk
           </p>
           <p className="truncate text-[11px] text-muted-foreground">
             Competitive intel
@@ -59,6 +63,14 @@ export function AppNav() {
           );
         })}
       </nav>
+      <div className="mt-auto space-y-1 border-t border-border px-2 py-2">
+        {email ? (
+          <p className="truncate px-2.5 text-xs text-muted-foreground">
+            {email}
+          </p>
+        ) : null}
+        <SignOutButton />
+      </div>
     </aside>
   );
 }

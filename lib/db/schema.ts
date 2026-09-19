@@ -156,6 +156,16 @@ export const appSettings = pgTable(
   (table) => [uniqueIndex("app_settings_industry_id_idx").on(table.industryId)],
 );
 
+export const users = pgTable("users", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  email: text("email").notNull().unique(),
+  passwordHash: text("password_hash").notNull(),
+  displayName: text("display_name").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
+
 export const industriesRelations = relations(industries, ({ many, one }) => ({
   competitors: many(competitors),
   keywords: many(watchKeywords),
@@ -225,6 +235,7 @@ export const appSettingsRelations = relations(appSettings, ({ one }) => ({
 }));
 
 export type Industry = typeof industries.$inferSelect;
+export type User = typeof users.$inferSelect;
 export type Competitor = typeof competitors.$inferSelect;
 export type WatchKeywordRow = typeof watchKeywords.$inferSelect;
 export type RawPost = typeof rawPosts.$inferSelect;

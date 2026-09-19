@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { config } from "dotenv";
 import postgres from "postgres";
@@ -16,12 +16,9 @@ function requireDatabaseUrl(): string {
 
 async function main() {
   const sql = postgres(requireDatabaseUrl(), { max: 1 });
-  const file = join(process.cwd(), "drizzle/0000_init.sql");
-  const raw = readFileSync(file, "utf8");
-  const statements = raw
-    .split("--> statement-breakpoint")
-    .map((part) => part.trim())
-    .filter(Boolean);
+  const files = readdirSync(join(process.cwd(), "drizzle"))
+    .filter((name) => name.endsWith(".sql"))
+    .sort();
 
   await sql.unsafe(`
     CREATE TABLE IF NOT EXISTS "__drizzle_migrations" (
@@ -31,20 +28,30 @@ async function main() {
     );
   `);
 
-  const applied = await sql<{ hash: string }[]>`
-    SELECT hash FROM "__drizzle_migrations" WHERE hash = '0000_init'
-  `;
+  for (const file of files) {
+    const hash = file.replace(/\.sql$/, "");
+    const applied = await sql<{ hash: string }[]>`
+      SELECT hash FROM "__drizzle_migrations" WHERE hash = ${hash}
+    `;
 
-  if (applied.length === 0) {
+    if (applied.length > 0) {
+      console.log(`${hash} already applied`);
+      continue;
+    }
+
+    const raw = readFileSync(join(process.cwd(), "drizzle", file), "utf8");
+    const statements = raw
+      .split("--> statement-breakpoint")
+      .map((part) => part.trim())
+      .filter(Boolean);
+
     for (const statement of statements) {
       await sql.unsafe(statement);
     }
     await sql.unsafe(
-      `INSERT INTO "__drizzle_migrations" (hash, created_at) VALUES ('0000_init', ${Date.now()})`,
+      `INSERT INTO "__drizzle_migrations" (hash, created_at) VALUES ('${hash}', ${Date.now()})`,
     );
-    console.log("Applied 0000_init");
-  } else {
-    console.log("0000_init already applied");
+    console.log(`Applied ${hash}`);
   }
 
   await sql.end();

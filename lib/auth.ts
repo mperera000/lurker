@@ -1,57 +1,53 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
-import Resend from "next-auth/providers/resend";
 import { authConfig } from "@/auth.config";
+import { isValidEmail, normalizeEmail } from "@/lib/auth/email";
+import { isAuthConfigured } from "@/lib/auth-ready";
+import { verifyUser } from "@/lib/users";
 
-export function isAuthConfigured(): boolean {
-  return Boolean(
-    process.env.AUTH_SECRET &&
-      ((process.env.ADMIN_EMAIL && process.env.ADMIN_PASSWORD) ||
-        process.env.AUTH_RESEND_KEY),
-  );
-}
+export { isAuthConfigured };
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
-  providers: [
-    ...(process.env.ADMIN_EMAIL && process.env.ADMIN_PASSWORD
-      ? [
-          Credentials({
-            name: "Admin",
-            credentials: {
-              email: { label: "Email", type: "email" },
-              password: { label: "Password", type: "password" },
-            },
-            authorize: async (credentials) => {
-              const email = String(credentials?.email ?? "");
-              const password = String(credentials?.password ?? "");
-              if (
-                email === process.env.ADMIN_EMAIL &&
-                password === process.env.ADMIN_PASSWORD
-              ) {
-                return { id: "admin", email, name: "Watcher admin" };
-              }
-              return null;
-            },
-          }),
-        ]
-      : []),
-    ...(process.env.AUTH_RESEND_KEY && process.env.ADMIN_EMAIL
-      ? [
-          Resend({
-            apiKey: process.env.AUTH_RESEND_KEY,
-            from: process.env.AUTH_EMAIL_FROM ?? "noreply@example.com",
-          }),
-        ]
-      : []),
-  ],
+  providers: isAuthConfigured()
+    ? [
+        Credentials({
+          credentials: {
+            email: { label: "Email", type: "email" },
+            password: { label: "Password", type: "password" },
+          },
+          authorize: async (credentials) => {
+            const email = normalizeEmail(credentials?.email);
+            const password = String(credentials?.password ?? "");
+            if (!isValidEmail(email) || !password) return null;
+            const user = await verifyUser(email, password);
+            if (!user) return null;
+            return {
+              id: user.id,
+              email: user.email,
+              name: user.displayName,
+            };
+          },
+        }),
+      ]
+    : [],
   callbacks: {
     ...authConfig.callbacks,
-    signIn: async ({ user, account }) => {
-      if (account?.provider === "resend") {
-        return user.email === process.env.ADMIN_EMAIL;
+    jwt: async ({ token, user }) => {
+      if (user?.id) {
+        token.userId = user.id;
+        token.email = user.email;
+        token.name = user.name;
       }
-      return true;
+      return token;
+    },
+    session: async ({ session, token }) => {
+      const userId = typeof token.userId === "string" ? token.userId : "";
+      const email = typeof token.email === "string" ? token.email : "";
+      session.user.id = userId;
+      session.user.email = email;
+      if (typeof token.name === "string") session.user.name = token.name;
+      return session;
     },
   },
 });

@@ -1,5 +1,7 @@
 import { AlertFeed } from "@/components/alert-feed";
+import { LandingPage } from "@/components/be-nosy/landing-page";
 import { listAlerts, type AlertStatus } from "@/lib/alerts";
+import { auth } from "@/lib/auth";
 import { Card, CardContent } from "@/components/ui/card";
 
 export const dynamic = "force-dynamic";
@@ -9,6 +11,11 @@ export default async function AlertsPage({
 }: {
   searchParams: Promise<{ status?: string }>;
 }) {
+  const session = await auth();
+  if (!session?.user) {
+    return <LandingPage />;
+  }
+
   const params = await searchParams;
   const raw = params.status ?? "new";
   const status = (
